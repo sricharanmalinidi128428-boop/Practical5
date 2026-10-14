@@ -1,0 +1,103 @@
+@page
+@model AcademicLeaveManager.Pages.IndexModel
+@using System.Globalization
+@{
+    ViewData["Title"] = Model.UserName is null ? "Sign in" : "Academic calendar";
+}
+
+@if (Model.UserName is null)
+{
+    <main class="auth-shell">
+        <section class="auth-story">
+            <a class="brand brand-light" asp-page="/Index"><span class="brand-mark">C</span><span>Campus<span class="brand-muted"> / Leave</span></span></a>
+            <div class="story-copy">
+                <div class="eyebrow"><span class="eyebrow-line"></span> STUDENT SERVICES</div>
+                <h1>Make room for<br /><em>what matters.</em></h1>
+                <p>Your academic calendar and leave requests, together in one calm place.</p>
+            </div>
+            <div class="story-foot"><span class="status-dot"></span> Academic year planner <span class="story-foot-year">@DateTime.Today.Year</span></div>
+        </section>
+        <section class="auth-panel">
+            <div class="auth-card">
+                <div class="mobile-brand"><span class="brand-mark">C</span> Campus / Leave</div>
+                <div class="eyebrow">WELCOME BACK</div>
+                <h2>Sign in to continue</h2>
+                <p class="muted">Use your campus demonstration account.</p>
+                <form method="post" asp-page-handler="Login" class="form-stack">
+                    <div asp-validation-summary="All" class="validation-summary"></div>
+                    <label asp-for="Login.UserName">Campus username</label>
+                    <input asp-for="Login.UserName" class="input" autocomplete="username" placeholder="e.g. student" />
+                    <span asp-validation-for="Login.UserName" class="field-error"></span>
+                    <label asp-for="Login.Password">Password</label>
+                    <input asp-for="Login.Password" type="password" class="input" autocomplete="current-password" placeholder="Enter your password" />
+                    <span asp-validation-for="Login.Password" class="field-error"></span>
+                    <label class="check-row"><input asp-for="Login.RememberMe" /> <span>Remember my username on this device</span></label>
+                    <button class="button button-primary button-wide" type="submit">Sign in <span aria-hidden="true">→</span></button>
+                </form>
+                <div class="demo-note"><span class="demo-icon">i</span><span>Demo access: <strong>student / Student@123</strong> or <strong>admin / Admin@123</strong></span></div>
+                <p class="auth-privacy">Your session expires after 30 minutes of inactivity.</p>
+            </div>
+        </section>
+    </main>
+}
+else
+{
+    <main class="app-shell">
+        <header class="topbar">
+            <a class="brand" asp-page="/Index"><span class="brand-mark">C</span><span>Campus<span class="brand-muted"> / Leave</span></span></a>
+            <nav class="top-nav" aria-label="Main navigation"><a class="nav-active" href="#calendar">Calendar</a><a href="#requests">My requests</a></nav>
+            <div class="profile-area"><div class="avatar">@Model.UserName[..1].ToUpperInvariant()</div><div class="profile-name"><strong>@Model.UserName</strong><span>Campus account</span></div><form method="post" asp-page-handler="Logout"><button class="button button-quiet" type="submit">Sign out</button></form></div>
+        </header>
+
+        <section class="welcome-row"><div><div class="eyebrow"><span class="eyebrow-line"></span> YOUR CAMPUS, AT A GLANCE</div><h1>Good day, @Model.UserName.</h1><p>Plan ahead, keep up with campus dates, and manage time away.</p></div><div class="today-card"><span class="today-label">TODAY</span><strong>@DateTime.Today.ToString("ddd, dd MMM", CultureInfo.InvariantCulture)</strong><span class="today-year">@DateTime.Today.Year</span></div></section>
+
+        @if (Model.Notice is not null)
+        {
+            <div class="notice" role="status"><span>✓</span> @Model.Notice</div>
+        }
+
+        <div class="dashboard-grid">
+            <section class="panel calendar-panel" id="calendar" aria-labelledby="calendar-title">
+                <div class="panel-heading"><div><div class="eyebrow">ACADEMIC PLANNER</div><h2 id="calendar-title">@Model.MonthTitle</h2></div><div class="month-nav"><a class="icon-button" aria-label="Previous month" asp-page="/Index" asp-route-month="@Model.MonthDate.AddMonths(-1).ToString("yyyy-MM")">‹</a><a class="icon-button" aria-label="Next month" asp-page="/Index" asp-route-month="@Model.MonthDate.AddMonths(1).ToString("yyyy-MM")">›</a></div></div>
+                <div class="calendar-legend"><span><i class="legend-dot legend-academic"></i> Academic</span><span><i class="legend-dot legend-holiday"></i> Holiday</span><span><i class="legend-dot legend-leave"></i> Your leave</span></div>
+                <div class="calendar-grid" role="grid" aria-label="@Model.MonthTitle calendar">
+                    @foreach (var day in new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" }) { <div class="weekday" role="columnheader">@day</div> }
+                    @foreach (var day in Model.CalendarDays)
+                    {
+                        <a role="gridcell" aria-label="@day.Date.ToString("dddd, dd MMMM yyyy", CultureInfo.InvariantCulture)" aria-selected="@(day.IsSelected ? "true" : "false")" class="calendar-day @(day.InMonth ? "" : "outside") @(day.IsToday ? "today" : "") @(day.IsSelected ? "selected" : "")" asp-page="/Index" asp-route-month="@Model.MonthDate.ToString("yyyy-MM")" asp-route-selectedDate="@day.Date.ToString("yyyy-MM-dd")">
+                            <span>@day.Date.Day</span><span class="day-dots">@if (day.HasEvent) { <i class="legend-dot legend-academic"></i> }@if (day.HasLeave) { <i class="legend-dot legend-leave"></i> }</span>
+                        </a>
+                    }
+                </div>
+                <div class="calendar-footer"><span><i class="today-ring"></i> Today</span><span>Select a date to start a request</span></div>
+            </section>
+
+            <section class="panel request-panel" aria-labelledby="request-title">
+                <div class="panel-heading"><div><div class="eyebrow">TIME AWAY</div><h2 id="request-title">Request leave</h2></div><span class="panel-icon">↗</span></div>
+                <p class="panel-intro">Share a few details and your request will be added to your list as pending.</p>
+                <form method="post" asp-page-handler="SubmitLeave" class="form-stack leave-form">
+                    <div asp-validation-summary="All" class="validation-summary"></div>
+                    <input type="hidden" name="RequestToken" value="@Model.RequestToken" />
+                    <div class="field-block"><label asp-for="Leave.Type">Leave category</label><select asp-for="Leave.Type" class="input select-input"><option>Casual leave</option><option>Sick leave</option><option>Earned leave</option><option>Academic leave</option></select><span asp-validation-for="Leave.Type" class="field-error"></span></div>
+                    <div class="date-fields"><div class="field-block"><label asp-for="Leave.StartDate">From</label><input asp-for="Leave.StartDate" type="date" class="input" /><span asp-validation-for="Leave.StartDate" class="field-error"></span></div><div class="field-block"><label asp-for="Leave.EndDate">Through</label><input asp-for="Leave.EndDate" type="date" class="input" /><span asp-validation-for="Leave.EndDate" class="field-error"></span></div></div>
+                    <div class="field-block"><label asp-for="Leave.Reason">Reason</label><textarea asp-for="Leave.Reason" class="input textarea" rows="3" placeholder="A short note to help us understand your request"></textarea><div class="hint-row"><span asp-validation-for="Leave.Reason" class="field-error"></span><span>8–500 characters</span></div></div>
+                    <button class="button button-primary button-wide" type="submit">Send request <span aria-hidden="true">→</span></button>
+                </form>
+            </section>
+        </div>
+
+        <div class="lower-grid">
+            <section class="panel event-panel"><div class="section-title"><div><div class="eyebrow">DON'T MISS</div><h2>Dates this month</h2></div><span class="count-pill">@Model.Events.Count</span></div>
+                @if (Model.Events.Count == 0) { <p class="empty-copy">No campus dates are listed for this month.</p> }
+                else { <div class="event-list">@foreach (var item in Model.Events) { <article class="event-row"><div class="event-date"><strong>@item.Date.Day.ToString("00")</strong><span>@item.Date.ToString("MMM", CultureInfo.InvariantCulture).ToUpperInvariant()</span></div><div class="event-info"><strong>@item.Title</strong><span>@item.Detail</span></div><span class="tag @(item.Category == "Holiday" ? "tag-holiday" : "tag-academic")">@item.Category</span></article> }</div> }
+            </section>
+            <section class="panel requests-list" id="requests"><div class="section-title"><div><div class="eyebrow">YOUR ACTIVITY</div><h2>Recent requests</h2></div><span class="count-pill">@Model.Requests.Count</span></div>
+                @if (Model.Requests.Count == 0) { <div class="empty-state"><span class="empty-calendar">▦</span><strong>No requests yet</strong><span>When you submit a leave request, it will appear here.</span></div> }
+                else { <div class="request-list">@foreach (var item in Model.Requests.Where(r => r.User == Model.UserName).Take(5)) { <article class="request-row"><div class="request-symbol">↗</div><div class="request-detail"><strong>@item.Type</strong><span>@item.StartDate.ToString("dd MMM", CultureInfo.InvariantCulture) – @item.EndDate.ToString("dd MMM yyyy", CultureInfo.InvariantCulture)</span><span class="request-reason">@item.Reason</span></div><span class="status-pill">@item.Status</span></article> }</div> }
+            </section>
+        </div>
+        <footer class="page-footer"><span>Campus / Leave <span class="footer-sep">·</span> Academic year planner</span><span>Demo application for .NET Practical 5</span></footer>
+    </main>
+}
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }
