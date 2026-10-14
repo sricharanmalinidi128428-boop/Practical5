@@ -1,0 +1,52 @@
+@model Practical6Catalog.Models.CatalogViewModel
+@{
+    ViewData["Title"] = "Product catalog";
+}
+
+<main class="page-shell">
+    <section class="page-heading">
+        <div>
+            <p class="eyebrow">PRACTICAL 6 · ASP.NET MVC</p>
+            <h1>Product Catalog</h1>
+            <p class="intro">Browse useful everyday products by name or category.</p>
+        </div>
+        <div class="catalog-summary"><strong>@Model.TotalCount</strong><span>sample products</span></div>
+    </section>
+
+    <section class="catalog-panel" aria-label="Product catalog">
+        <form asp-controller="Products" asp-action="Index" method="get" class="filter-bar">
+            <div class="search-field"><label for="search">Search products</label><input id="search" type="search" name="q" value="@Model.Query" placeholder="Name, category, or keyword" /></div>
+            <div class="category-field"><label for="category">Category</label><select id="category" name="category"><option value="All items" selected="@(Model.SelectedCategory == "All items")">All categories</option>@foreach (var item in Model.Categories) { <option value="@item" selected="@(Model.SelectedCategory == item)">@item</option> }</select></div>
+            <button class="button button-primary" type="submit">Apply filters</button>
+            @if (!string.IsNullOrWhiteSpace(Model.Query) || Model.SelectedCategory != "All items") { <a class="clear-link" asp-controller="Products" asp-action="Index">Clear</a> }
+        </form>
+
+        <div class="table-heading"><div><h2>Available products</h2><p>Showing @Model.Products.Count of @Model.TotalCount products</p></div><span class="table-count">@Model.Products.Count results</span></div>
+        @if (Model.Products.Count == 0)
+        {
+            <div class="empty-state"><span class="empty-icon">⌕</span><strong>No matching products</strong><p>Try a different search or category.</p><a asp-controller="Products" asp-action="Index">Show all products</a></div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th scope="col">Product</th><th scope="col">Category</th><th scope="col">Price</th><th scope="col"><span class="sr-only">Details</span></th></tr></thead>
+                    <tbody>
+                    @foreach (var product in Model.Products)
+                    {
+                        <tr>
+                            <td><div class="product-cell"><img class="product-photo" src="~/images/products/@product.ImageFile" alt="@product.Name" /><span class="product-copy"><a class="product-name" asp-controller="Products" asp-action="Details" asp-route-id="@product.Id">@product.Name</a><small>@product.Description</small></span></div></td>
+                            <td><span class="category-pill">@product.Category</span></td>
+                            <td class="price-cell">₹@product.Price.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("en-IN"))</td>
+                            <td class="action-cell"><a class="details-link" asp-controller="Products" asp-action="Details" asp-route-id="@product.Id">Details <span aria-hidden="true">→</span></a></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+        <div class="panel-footer">Sample catalog data for the .NET Technologies practical <span>Updated for demo</span></div>
+    </section>
+
+    <section class="concept-note"><span class="concept-mark">i</span><p><strong>MVC in this project:</strong> the <code>Product</code> model describes each item, <code>ProductsController</code> filters the catalog, and these Razor views render the results through conventional routes.</p></section>
+</main>
